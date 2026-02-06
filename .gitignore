@@ -1,0 +1,4 @@
+# banco de dados
+*.db
+*.sqlite
+/data/
