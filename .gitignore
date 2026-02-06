@@ -1,4 +1,6 @@
 # banco de dados
-*.db
-*.sqlite
-/data/
+.db
+.sqlite
+data/catalog.db
+test.db
+src/db.rs
