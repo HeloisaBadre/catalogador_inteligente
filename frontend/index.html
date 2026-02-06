@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Catalogador Inteligente de Arquivos</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+
+<body>
+    <div class="app-container">
+        <nav class="sidebar">
+            <div class="logo">
+                <h1>📁 Catalogador Inteligente</h1>
+            </div>
+            <ul class="nav-menu">
+                <li class="nav-item active" data-view="dashboard">
+                    <span class="icon">📊</span>
+                    <span>Painel</span>
+                </li>
+                <li class="nav-item" data-view="search">
+                    <span class="icon">🔍</span>
+                    <span>Buscar</span>
+                </li>
+                <li class="nav-item" data-view="duplicates">
+                    <span class="icon">📋</span>
+                    <span>Duplicados</span>
+                </li>
+                <li class="nav-item" data-view="largest">
+                    <span class="icon">📦</span>
+                    <span>Maiores Arquivos</span>
+                </li>
+                <li class="nav-item" data-view="oldest">
+                    <span class="icon">🕰️</span>
+                    <span>Arquivos Antigos</span>
+                </li>
+            </ul>
+        </nav>
+
+        <main class="main-content">
+            <!-- Dashboard View -->
+            <div id="dashboard-view" class="view active">
+                <header class="view-header">
+                    <h2>Painel de Controle</h2>
+                    <p class="subtitle">Visão geral do seu sistema de arquivos</p>
+                </header>
+
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon">📄</div>
+                        <div class="stat-content">
+                            <div class="stat-label">Total de Arquivos</div>
+                            <div class="stat-value" id="total-files">-</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">💾</div>
+                        <div class="stat-content">
+                            <div class="stat-label">Tamanho Total</div>
+                            <div class="stat-value" id="total-size">-</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="charts-grid">
+                    <div class="chart-card">
+                        <h3>Distribuição por Tipo de Arquivo</h3>
+                        <canvas id="extensionChart"></canvas>
+                    </div>
+                    <div class="chart-card">
+                        <h3>Top 10 Maiores Arquivos</h3>
+                        <canvas id="largestFilesChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Search View -->
+            <div id="search-view" class="view">
+                <header class="view-header">
+                    <h2>Buscar Arquivos</h2>
+                    <p class="subtitle">Encontre arquivos com filtros avançados</p>
+                </header>
+
+                <div class="search-panel">
+                    <input type="text" id="search-query" placeholder="Buscar por nome ou caminho..."
+                        class="search-input">
+                    <div class="filter-row">
+                        <input type="text" id="filter-extension" placeholder="Extensão (ex: txt)" class="filter-input">
+                        <input type="number" id="filter-min-size" placeholder="Tamanho mín (bytes)"
+                            class="filter-input">
+                        <input type="number" id="filter-max-size" placeholder="Tamanho máx (bytes)"
+                            class="filter-input">
+                        <button id="search-btn" class="btn-primary">Buscar</button>
+                    </div>
+                </div>
+
+                <div id="search-results" class="results-container"></div>
+            </div>
+
+            <!-- Duplicates View -->
+            <div id="duplicates-view" class="view">
+                <header class="view-header">
+                    <h2>Arquivos Duplicados</h2>
+                    <p class="subtitle">Arquivos com conteúdo idêntico (hash MD5)</p>
+                </header>
+
+                <div id="duplicates-results" class="results-container"></div>
+            </div>
+
+            <!-- Largest Files View -->
+            <div id="largest-view" class="view">
+                <header class="view-header">
+                    <h2>Maiores Arquivos</h2>
+                    <p class="subtitle">Todos os arquivos ordenados por tamanho</p>
+                </header>
+
+                <div class="filter-panel">
+                    <label>Mostrar:
+                        <select id="largest-limit" class="filter-input">
+                            <option value="50">50 arquivos</option>
+                            <option value="100" selected>100 arquivos</option>
+                            <option value="500">500 arquivos</option>
+                            <option value="1000">1000 arquivos</option>
+                        </select>
+                    </label>
+                    <button id="largest-refresh-btn" class="btn-primary">Atualizar</button>
+                </div>
+
+                <div id="largest-results" class="results-container"></div>
+            </div>
+
+            <!-- Oldest Files View -->
+            <div id="oldest-view" class="view">
+                <header class="view-header">
+                    <h2>Arquivos Mais Antigos</h2>
+                    <p class="subtitle">Arquivos ordenados por data de modificação (mais antigo primeiro)</p>
+                </header>
+
+                <div class="filter-panel">
+                    <label>Mostrar:
+                        <select id="oldest-limit" class="filter-input">
+                            <option value="50">50 arquivos</option>
+                            <option value="100" selected>100 arquivos</option>
+                            <option value="500">500 arquivos</option>
+                            <option value="1000">1000 arquivos</option>
+                        </select>
+                    </label>
+                    <button id="oldest-refresh-btn" class="btn-primary">Atualizar</button>
+                </div>
+
+                <div id="oldest-results" class="results-container"></div>
+            </div>
+        </main>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+
+</html>

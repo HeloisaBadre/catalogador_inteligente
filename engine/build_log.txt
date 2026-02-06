@@ -1,0 +1,33 @@
+﻿cargo :     Checking engine v0.1.0 (C:\Users\03171
+7091\.gemini\antigravity\scratch\smart_cataloger\e
+ngine)
+No linha:1 caractere:1
++ cargo check 2>&1 | Out-File -Encoding utf8 
+build_log.txt
++ ~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (     
+   Checking en...taloger\engine):String) [], Rem  
+  oteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+error[E0432]: unresolved import `md5::Md5`
+ --> src\scanner.rs:3:19
+  |
+3 | use md5::{Digest, Md5};
+  |                   ^^^ no `Md5` in the root
+
+warning: unused import: `Digest`
+ --> src\scanner.rs:3:11
+  |
+3 | use md5::{Digest, Md5};
+  |           ^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of 
+`#[warn(unused)]`) on by default
+
+For more information about this error, try `rustc 
+--explain E0432`.
+warning: `engine` (bin "engine") generated 1 
+warning
+error: could not compile `engine` (bin "engine") 
+due to 1 previous error; 1 warning emitted
