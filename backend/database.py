@@ -11,6 +11,35 @@ class Database:
         conn = sqlite3.connect(self.db_path)
         conn.row_factory = sqlite3.Row
         return conn
+
+    def ensure_schema(self):
+        """Ensure necessary columns exist in the database."""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        
+        try:
+            # Check for existing columns
+            cursor.execute("PRAGMA table_info(files)")
+            columns = [col[1] for col in cursor.fetchall()]
+            
+            # Start transaction
+            conn.execute("BEGIN TRANSACTION")
+            
+            if 'sha256_verified' not in columns:
+                print("Migrating: Adding sha256_verified column...")
+                cursor.execute("ALTER TABLE files ADD COLUMN sha256_verified INTEGER DEFAULT 0")
+                
+            if 'sha256_hash' not in columns:
+                print("Migrating: Adding sha256_hash column...")
+                cursor.execute("ALTER TABLE files ADD COLUMN sha256_hash TEXT")
+            
+            conn.commit()
+            
+        except sqlite3.Error as e:
+            print(f"Schema migration error: {e}")
+            conn.rollback()
+        finally:
+            conn.close()
     
     def get_stats(self) -> Dict[str, Any]:
         """Get overall statistics."""
@@ -294,7 +323,7 @@ class Database:
             if sep in relative:
                 # Item is in a subdirectory
                 dir_name = relative.split(sep)[0]
-                dir_path = path + sep + dir_name
+                dir_path = f"{path}{sep}{dir_name}"
                 
                 if dir_path not in dir_map:
                     dir_map[dir_path] = {

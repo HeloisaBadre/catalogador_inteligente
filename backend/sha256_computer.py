@@ -8,7 +8,7 @@ Used by the backend API for on-demand verification.
 import hashlib
 import sys
 from pathlib import Path
-from typing import List, Dict
+from typing import List, Dict, Any
 
 
 def compute_sha256(file_path: str) -> str:
@@ -25,7 +25,7 @@ def compute_sha256(file_path: str) -> str:
         raise Exception(f"Error hashing {file_path}: {e}")
 
 
-def compute_multiple(file_paths: List[str]) -> List[Dict[str, str]]:
+def compute_multiple(file_paths: List[str]) -> List[Dict[str, Any]]:
     """Compute SHA256 for multiple files."""
     results = []
     

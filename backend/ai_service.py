@@ -24,7 +24,7 @@ class AIService:
     
     def get_suggestions(self) -> List[Dict[str, Any]]:
         """Run all heuristic rules and return suggestions."""
-        suggestions = []
+        suggestions: List[Suggestion] = []
         
         # 1. Temporary Files Rule
         suggestions.extend(self._find_temp_files())
