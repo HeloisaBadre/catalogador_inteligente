@@ -1,9 +1,16 @@
 from fastapi import FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, Response
+from pydantic import BaseModel
+from typing import List
 import os
 from database import Database
+from sha256_computer import compute_multiple
+from export_service import ExportService
+from ai_service import AIService
+import json
+import time
 
 app = FastAPI(title="Smart File Cataloger API")
 
@@ -56,6 +63,153 @@ async def get_oldest_files(limit: int = Query(100, description="Number of files 
     """Get oldest files sorted by modification date."""
     db = Database(DB_PATH)
     return db.get_oldest_files(limit)
+
+class VerifyRequest(BaseModel):
+    md5_hash: str
+    file_ids: List[int]
+    file_paths: List[str]
+
+@app.post("/api/duplicates/verify")
+async def verify_duplicates(request: VerifyRequest):
+    """Verify duplicates using SHA256 hash."""
+    db = Database(DB_PATH)
+    
+    # Compute SHA256 for all files
+    results = compute_multiple(request.file_paths)
+    
+    # Update database with SHA256 hashes
+    for i, result in enumerate(results):
+        if result["success"]:
+            file_id = request.file_ids[i]
+            db.update_sha256_hash(file_id, result["sha256"])
+    
+    # Group by SHA256 to find true duplicates
+    sha256_groups = {}
+    for i, result in enumerate(results):
+        if result["success"]:
+            sha256 = result["sha256"]
+            if sha256 not in sha256_groups:
+                sha256_groups[sha256] = []
+            sha256_groups[sha256].append({
+                "path": result["path"],
+                "file_id": request.file_ids[i]
+            })
+    
+    # Return verification results
+    verified_groups = []
+    for sha256, files in sha256_groups.items():
+        verified_groups.append({
+            "sha256_hash": sha256,
+            "files": files,
+            "is_duplicate": len(files) > 1,
+            "count": len(files)
+        })
+    
+    return {
+        "md5_hash": request.md5_hash,
+        "verified_groups": verified_groups,
+        "total_files": len(results),
+        "successful": sum(1 for r in results if r["success"]),
+        "failed": sum(1 for r in results if not r["success"])
+    }
+
+@app.get("/api/duplicates/candidates")
+async def get_duplicate_candidates():
+    """Get MD5 duplicate candidates for SHA256 verification."""
+    db = Database(DB_PATH)
+    return db.get_duplicate_candidates()
+
+@app.get("/api/export/json")
+async def export_json():
+    """Export catalog data as JSON."""
+    exporter = ExportService(DB_PATH)
+    json_data = exporter.export_json()
+    return Response(
+        content=json_data,
+        media_type="application/json",
+        headers={
+            "Content-Disposition": "attachment; filename=catalog_export.json"
+        }
+    )
+
+@app.get("/api/export/csv")
+async def export_csv():
+    """Export catalog data as CSV."""
+    exporter = ExportService(DB_PATH)
+    csv_data = exporter.export_csv()
+    return Response(
+        content=csv_data,
+        media_type="text/csv",
+        headers={
+            "Content-Disposition": "attachment; filename=catalog_export.csv"
+        }
+    )
+
+@app.get("/api/export/html")
+async def export_html():
+    """Export catalog report as HTML."""
+    exporter = ExportService(DB_PATH)
+    html_data = exporter.export_html()
+    return Response(
+        content=html_data,
+        media_type="text/html",
+        headers={
+            "Content-Disposition": "attachment; filename=catalog_report.html"
+        }
+    )
+
+@app.get("/api/tree")
+async def get_tree(
+    path: str = Query("", description="Parent directory path"),
+    depth: int = Query(1, description="Depth to load (always 1 for lazy loading)")
+):
+    """Get directory tree structure with lazy loading."""
+    db = Database(DB_PATH)
+    return db.get_tree_structure(path, depth)
+
+@app.get("/api/suggestions")
+async def get_suggestions():
+    """Get smart heuristic suggestions for file cleanup."""
+    service = AIService(DB_PATH)
+    return service.get_suggestions()
+
+@app.get("/api/scan_progress")
+async def get_scan_progress():
+    """Get real-time scan progress from the engine."""
+    # Assuming DB_PATH is in data/catalog.db, status is in data/scan_status.json
+    db_dir = os.path.dirname(DB_PATH)
+    status_path = os.path.join(db_dir, "scan_status.json")
+    
+    if not os.path.exists(status_path):
+        return {
+            "scanned": 0,
+            "total": None,
+            "current_file": None,
+            "status": "idle"
+        }
+        
+    try:
+        # Check for stale file (older than 30 seconds)
+        mtime = os.path.getmtime(status_path)
+        if time.time() - mtime > 30:
+             return {
+                "scanned": 0,
+                "total": None,
+                "current_file": None,
+                "status": "idle" # Treat as idle if engine died
+            }
+
+        with open(status_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        return data
+    except Exception as e:
+        print(f"Error reading status file: {e}")
+        return {
+            "scanned": 0,
+            "total": None,
+            "current_file": None,
+            "status": "error"
+        }
 
 # Mount frontend static files
 if os.path.exists("../frontend"):

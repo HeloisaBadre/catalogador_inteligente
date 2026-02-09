@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Catalogador Inteligente de Arquivos</title>
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="styles.css?v=2">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
 
@@ -15,6 +15,20 @@
             <div class="logo">
                 <h1>📁 Catalogador Inteligente</h1>
             </div>
+
+            <!-- Scan Progress -->
+            <div id="scan-progress-container" class="scan-progress hidden">
+                <div class="progress-info">
+                    <span class="progress-label">Escaneando...</span>
+                    <span id="scan-count" class="progress-count">0</span>
+                </div>
+                <div class="progress-bar-bg">
+                    <div id="scan-bar" class="progress-bar-fill" style="width: 0%"></div>
+                </div>
+                <div id="scan-current-file" class="progress-file truncate">Iniciando...</div>
+                <button id="btn-cancel-scan" class="btn-cancel" onclick="cancelScan()">Cancelar</button>
+            </div>
+
             <ul class="nav-menu">
                 <li class="nav-item active" data-view="dashboard">
                     <span class="icon">📊</span>
@@ -35,6 +49,14 @@
                 <li class="nav-item" data-view="oldest">
                     <span class="icon">🕰️</span>
                     <span>Arquivos Antigos</span>
+                </li>
+                <li class="nav-item" data-view="tree">
+                    <span class="icon">🌳</span>
+                    <span>Visualização em Árvore</span>
+                </li>
+                <li class="nav-item" data-view="suggestions">
+                    <span class="icon">💡</span>
+                    <span>Sugestões</span>
                 </li>
             </ul>
         </nav>
@@ -61,6 +83,22 @@
                             <div class="stat-label">Tamanho Total</div>
                             <div class="stat-value" id="total-size">-</div>
                         </div>
+                    </div>
+                </div>
+
+                <div class="export-section">
+                    <h3>📥 Exportar Relatórios</h3>
+                    <p class="export-description">Baixe seus dados em diferentes formatos</p>
+                    <div class="export-buttons">
+                        <button class="btn-export btn-json" onclick="exportData('json')">
+                            📄 Exportar JSON
+                        </button>
+                        <button class="btn-export btn-csv" onclick="exportData('csv')">
+                            📊 Exportar CSV
+                        </button>
+                        <button class="btn-export btn-html" onclick="exportData('html')">
+                            🌐 Exportar HTML
+                        </button>
                     </div>
                 </div>
 
@@ -152,10 +190,47 @@
 
                 <div id="oldest-results" class="results-container"></div>
             </div>
+
+            <!-- Tree View -->
+            <div id="tree-view" class="view">
+                <header class="view-header">
+                    <h2>Visualização em Árvore</h2>
+                    <p class="subtitle">Navegue pela estrutura de diretórios</p>
+                </header>
+
+                <div class="tree-container">
+                    <div id="tree-root" class="tree-items"></div>
+                </div>
+            </div>
+
+            <!-- Suggestions View -->
+            <div id="suggestions-view" class="view">
+                <header class="view-header">
+                    <h2>Sugestões de Limpeza</h2>
+                    <p class="subtitle">Recomendações inteligentes para liberar espaço</p>
+                </header>
+
+                <div class="suggestions-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Caminho</th>
+                                <th>Tipo</th>
+                                <th>Motivo</th>
+                                <th>Tamanho</th>
+                                <th>Ação</th>
+                            </tr>
+                        </thead>
+                        <tbody id="suggestions-table-body">
+                            <!-- Populated by JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </main>
     </div>
 
-    <script src="app.js"></script>
+    <script src="app.js?v=2"></script>
 </body>
 
 </html>

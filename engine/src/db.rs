@@ -31,7 +31,8 @@ impl Database {
                 created_at INTEGER,
                 modified_at INTEGER,
                 md5_hash TEXT NOT NULL,
-                sha256_hash TEXT
+                sha256_hash TEXT,
+                sha256_verified INTEGER DEFAULT 0
             );
 
             -- Indexes for Search Performance
@@ -54,8 +55,8 @@ impl Database {
         {
             let mut stmt = tx.prepare(
                 "INSERT OR REPLACE INTO files 
-                (path, filename, extension, size_bytes, created_at, modified_at, md5_hash, sha256_hash)
-                VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)"
+                (path, filename, extension, size_bytes, created_at, modified_at, md5_hash, sha256_hash, sha256_verified)
+                VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, 0)"
             )?;
 
             for file in files {

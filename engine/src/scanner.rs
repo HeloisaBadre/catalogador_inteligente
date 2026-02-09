@@ -2,6 +2,7 @@ use crate::models::FileEntry;
 use anyhow::Result;
 use md5::{Digest, Md5};
 use rayon::prelude::*;
+use sha2::Sha256;
 use std::fs::File;
 use std::io::{BufReader, Read};
 use std::path::Path;
@@ -61,10 +62,29 @@ impl Scanner {
     }
 }
 
-fn compute_md5(path: &Path) -> Result<String> {
+pub fn compute_md5(path: &Path) -> Result<String> {
     let file = File::open(path)?;
     let mut reader = BufReader::new(file);
     let mut hasher = Md5::new();
+
+    // Read in chunks to avoid loading large files entirely into RAM
+    let mut buffer = [0; 8192];
+    loop {
+        let count = reader.read(&mut buffer)?;
+        if count == 0 {
+            break;
+        }
+        hasher.update(&buffer[..count]);
+    }
+
+    let result = hasher.finalize();
+    Ok(format!("{:x}", result))
+}
+
+pub fn compute_sha256(path: &Path) -> Result<String> {
+    let file = File::open(path)?;
+    let mut reader = BufReader::new(file);
+    let mut hasher = Sha256::new();
 
     // Read in chunks to avoid loading large files entirely into RAM
     let mut buffer = [0; 8192];
