@@ -11,6 +11,7 @@ from export_service import ExportService
 from ai_service import AIService
 import json
 import time
+from datetime import datetime
 
 app = FastAPI(title="Smart File Cataloger API")
 
@@ -124,11 +125,12 @@ async def export_json():
     """Export catalog data as JSON."""
     exporter = ExportService(DB_PATH)
     json_data = exporter.export_json()
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     return Response(
         content=json_data,
         media_type="application/json",
         headers={
-            "Content-Disposition": "attachment; filename=catalog_export.json"
+            "Content-Disposition": f"attachment; filename=catalog_export_{timestamp}.json"
         }
     )
 
@@ -137,11 +139,12 @@ async def export_csv():
     """Export catalog data as CSV."""
     exporter = ExportService(DB_PATH)
     csv_data = exporter.export_csv()
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     return Response(
         content=csv_data,
         media_type="text/csv",
         headers={
-            "Content-Disposition": "attachment; filename=catalog_export.csv"
+            "Content-Disposition": f"attachment; filename=catalog_export_{timestamp}.csv"
         }
     )
 
@@ -150,11 +153,12 @@ async def export_html():
     """Export catalog report as HTML."""
     exporter = ExportService(DB_PATH)
     html_data = exporter.export_html()
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     return Response(
         content=html_data,
         media_type="text/html",
         headers={
-            "Content-Disposition": "attachment; filename=catalog_report.html"
+            "Content-Disposition": f"attachment; filename=catalog_report_{timestamp}.html"
         }
     )
 

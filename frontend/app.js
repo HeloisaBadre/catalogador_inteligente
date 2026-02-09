@@ -551,17 +551,81 @@ function createTreeItem(item, level) {
 }
 
 // Export functionality
-function exportData(format) {
-    const url = `${API_BASE}/export/${format}`;
+// --- Export Modal Logic ---
 
-    // Create temporary link and trigger download
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `catalog_export.${format}`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+function openExportModal() {
+    const modal = document.getElementById('export-modal');
+    modal.classList.remove('hidden');
+    // Force reflow for transition
+    void modal.offsetWidth;
+    modal.classList.add('active');
 }
+
+function closeExportModal() {
+    const modal = document.getElementById('export-modal');
+    modal.classList.remove('active');
+    setTimeout(() => {
+        modal.classList.add('hidden');
+    }, 300); // Wait for transition
+}
+
+async function confirmExport() {
+    const format = document.querySelector('input[name="export-format"]:checked').value;
+    const btn = document.querySelector('#export-modal .btn-primary');
+    const btnText = btn.querySelector('.btn-text');
+    const spinner = btn.querySelector('.spinner');
+
+    // UI Loading State
+    btn.disabled = true;
+    btnText.textContent = 'Gerando...';
+    spinner.classList.remove('hidden');
+
+    try {
+        const response = await fetch(`${API_BASE}/export/${format}`);
+
+        if (!response.ok) throw new Error('Falha na exportação');
+
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.style.display = 'none';
+        a.href = url;
+
+        // Get filename from header or default
+        const contentDisposition = response.headers.get('Content-Disposition');
+        let filename = `relatorio_arquivos_${new Date().toISOString().slice(0, 10)}.${format}`;
+        if (contentDisposition) {
+            const filenameMatch = contentDisposition.match(/filename="?([^"]+)"?/);
+            if (filenameMatch.length === 2)
+                filename = filenameMatch[1];
+        }
+
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+
+        window.URL.revokeObjectURL(url);
+
+        // Close modal after short delay
+        setTimeout(() => {
+            closeExportModal();
+        }, 500);
+
+    } catch (error) {
+        console.error('Export error:', error);
+        alert('Erro ao gerar relatório. Tente novamente.');
+    } finally {
+        // Reset UI
+        btn.disabled = false;
+        btnText.textContent = 'Exportar';
+        spinner.classList.add('hidden');
+    }
+}
+
+// Close modal on Escape key
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeExportModal();
+});
 
 // Load dashboard on startup
 loadDashboard();

@@ -16,83 +16,118 @@ class ExportService:
         self.db = Database(db_path)
     
     def export_json(self) -> str:
-        """Export all data as JSON."""
+        """Export all data as JSON with structure matching requirements."""
         stats = self.db.get_stats()
         duplicates = self.db.get_duplicates()
-        largest = self.db.get_largest_files(500)
+        largest = self.db.get_largest_files(100) # Top 100
+        oldest = self.db.get_oldest_files(100)   # Top 100
         
         data = {
-            "export_date": datetime.now().isoformat(),
-            "statistics": {
+            "generated_at": datetime.now().isoformat(),
+            "summary": {
                 "total_files": stats["total_files"],
                 "total_size_bytes": stats["total_size"],
-                "extensions": stats["extensions"]
+                "formatted_size": self._format_bytes(stats["total_size"])
             },
+            "file_type_distribution": stats["extensions"],
             "duplicates": {
-                "count": len(duplicates),
+                "total_groups": len(duplicates),
+                "total_wasted_space": sum(d['wasted_space'] for d in duplicates),
                 "groups": duplicates
             },
-            "largest_files": largest
+            "largest_files": largest,
+            "oldest_files": oldest
         }
         
         return json.dumps(data, indent=2, ensure_ascii=False)
     
     def export_csv(self) -> str:
-        """Export file catalog as CSV."""
-        # Get comprehensive file list
-        conn = self.db.get_connection()
-        cursor = conn.cursor()
-        cursor.execute("""
-            SELECT path, filename, extension, size_bytes, 
-                   created_at, modified_at, md5_hash, sha256_hash
-            FROM files
-            ORDER BY size_bytes DESC
-           LIMIT 10000
-        """)
-        files = cursor.fetchall()
-        conn.close()
-        
+        """Export comprehensive report as multi-section CSV."""
         output = StringIO()
         writer = csv.writer(output)
         
-        # Write header
-        writer.writerow([
-            'Path', 'Filename', 'Extension', 'Size (Bytes)',
-            'Created At', 'Modified At', 'MD5 Hash', 'SHA256 Hash'
-        ])
+        stats = self.db.get_stats()
+        duplicates = self.db.get_duplicates()
+        largest = self.db.get_largest_files(100)
+        oldest = self.db.get_oldest_files(100)
         
-        # Write data
-        for file in files:
+        # --- SECTION 1: SUMARIO ---
+        writer.writerow(['--- SUMÁRIO ---'])
+        writer.writerow(['Data do Relatório', datetime.now().strftime('%Y-%m-%d %H:%M:%S')])
+        writer.writerow(['Total de Arquivos', stats['total_files']])
+        writer.writerow(['Tamanho Total', self._format_bytes(stats['total_size'])])
+        writer.writerow([])
+        
+        # --- SECTION 2: DISTRIBUIÇÃO POR TIPO ---
+        writer.writerow(['--- DISTRIBUIÇÃO POR TIPO ---'])
+        writer.writerow(['Extensão', 'Quantidade', 'Tamanho Total', 'Percentual'])
+        total_size = stats['total_size'] or 1
+        for ext in stats['extensions']:
+            percent = (ext['total_size'] / total_size) * 100
             writer.writerow([
-                file['path'],
-                file['filename'],
-                file['extension'] or '',
-                file['size_bytes'],
-                datetime.fromtimestamp(file['created_at']).isoformat() if file['created_at'] else '',
-                datetime.fromtimestamp(file['modified_at']).isoformat() if file['modified_at'] else '',
-                file['md5_hash'],
-                file['sha256_hash'] or ''
+                ext['extension'] or '(sem extensão)',
+                ext['count'],
+                self._format_bytes(ext['total_size']),
+                f"{percent:.2f}%"
             ])
+        writer.writerow([])
         
+        # --- SECTION 3: TOP 10 MAIORES ARQUIVOS ---
+        writer.writerow(['--- TOP 100 MAIORES ARQUIVOS ---'])
+        writer.writerow(['Caminho', 'Nome', 'Tamanho', 'Modificado em'])
+        for f in largest:
+            writer.writerow([
+                f['path'],
+                f['filename'],
+                self._format_bytes(f['size_bytes']),
+                datetime.fromtimestamp(f['modified_at']).strftime('%Y-%m-%d %H:%M:%S') if f['modified_at'] else ''
+            ])
+        writer.writerow([])
+        
+        # --- SECTION 4: ARQUIVOS MAIS ANTIGOS ---
+        writer.writerow(['--- TOP 100 ARQUIVOS MAIS ANTIGOS ---'])
+        writer.writerow(['Caminho', 'Nome', 'Tamanho', 'Criado em', 'Modificado em'])
+        for f in oldest:
+            writer.writerow([
+                f['path'],
+                f['filename'],
+                self._format_bytes(f['size_bytes']),
+                datetime.fromtimestamp(f['created_at']).strftime('%Y-%m-%d %H:%M:%S') if f['created_at'] else '',
+                datetime.fromtimestamp(f['modified_at']).strftime('%Y-%m-%d %H:%M:%S') if f['modified_at'] else ''
+            ])
+        writer.writerow([])
+
+        # --- SECTION 5: DUPLICADOS ---
+        writer.writerow(['--- ARQUIVOS DUPLICADOS ---'])
+        writer.writerow(['Grupo Hash (MD5)', 'Quantidade', 'Espaço Desperdiçado', 'Caminhos'])
+        for d in duplicates:
+            paths = " | ".join(d['paths'])
+            writer.writerow([
+                d['md5_hash'],
+                d['count'],
+                self._format_bytes(d['wasted_space']),
+                paths
+            ])
+            
         return output.getvalue()
     
+    def _format_bytes(self, bytes_val):
+        """Helper to format bytes."""
+        if not bytes_val: return '0 B'
+        k = 1024
+        sizes = ['B', 'KB', 'MB', 'GB', 'TB']
+        i = 0
+        while bytes_val >= k and i < len(sizes) - 1:
+            bytes_val /= k
+            i += 1
+        return f"{bytes_val:.2f} {sizes[i]}"
+
     def export_html(self) -> str:
         """Export comprehensive report as self-contained HTML."""
         stats = self.db.get_stats()
         duplicates = self.db.get_duplicates()
         largest = self.db.get_largest_files(100)
-        
-        # Format bytes helper
-        def format_bytes(bytes_val):
-            if not bytes_val:
-                return '0 B'
-            k = 1024
-            sizes = ['B', 'KB', 'MB', 'GB', 'TB']
-            i = 0
-            while bytes_val >= k and i < len(sizes) - 1:
-                bytes_val /= k
-                i += 1
-            return f"{bytes_val:.2f} {sizes[i]}"
+        oldest = self.db.get_oldest_files(100)
         
         # Build HTML
         html = f"""<!DOCTYPE html>
@@ -260,7 +295,7 @@ class ExportService:
                     <div class="stat-label">Total de Arquivos</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-value">{format_bytes(stats['total_size'])}</div>
+                    <div class="stat-value">{self._format_bytes(stats['total_size'])}</div>
                     <div class="stat-label">Tamanho Total</div>
                 </div>
                 <div class="stat-card">
@@ -291,7 +326,7 @@ class ExportService:
                         <tr>
                             <td><strong>{ext['extension'] or 'Sem extensão'}</strong></td>
                             <td>{ext['count']:,}</td>
-                            <td>{format_bytes(ext['total_size'])}</td>
+                            <td>{self._format_bytes(ext['total_size'])}</td>
                         </tr>"""
         
         html += """
@@ -317,9 +352,9 @@ class ExportService:
                         <tr>
                             <td>{idx}</td>
                             <td class="file-path">{file['path']}</td>
-                            <td><strong>{format_bytes(file['size_bytes'])}</strong></td>
+                            <td><strong>{self._format_bytes(file['size_bytes'])}</strong></td>
                         </tr>"""
-        
+                        
         html += """
                     </tbody>
                 </table>
@@ -336,7 +371,7 @@ class ExportService:
                 <div class="duplicate-group">
                     <div class="duplicate-header">
                         MD5: {dup['md5_hash']} • {dup['count']} cópias • 
-                        Desperdiçado: {format_bytes(dup['wasted_space'])}
+                        Desperdiçado: {self._format_bytes(dup['wasted_space'])}
                     </div>"""
                 
                 for path in dup['paths']:

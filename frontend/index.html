@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Catalogador Inteligente de Arquivos</title>
-    <link rel="stylesheet" href="styles.css?v=2">
+    <link rel="stylesheet" href="styles.css?v=3">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
 
@@ -88,18 +88,10 @@
 
                 <div class="export-section">
                     <h3>📥 Exportar Relatórios</h3>
-                    <p class="export-description">Baixe seus dados em diferentes formatos</p>
-                    <div class="export-buttons">
-                        <button class="btn-export btn-json" onclick="exportData('json')">
-                            📄 Exportar JSON
-                        </button>
-                        <button class="btn-export btn-csv" onclick="exportData('csv')">
-                            📊 Exportar CSV
-                        </button>
-                        <button class="btn-export btn-html" onclick="exportData('html')">
-                            🌐 Exportar HTML
-                        </button>
-                    </div>
+                    <p class="export-description">Gere relatórios detalhados em CSV, JSON ou HTML.</p>
+                    <button class="btn-primary btn-large export-trigger" onclick="openExportModal()">
+                        📊 Exportar Relatório Completo
+                    </button>
                 </div>
 
                 <div class="charts-grid">
@@ -230,7 +222,53 @@
         </main>
     </div>
 
-    <script src="app.js?v=2"></script>
+    <script src="app.js?v=3"></script>
+    <!-- Export Modal -->
+    <div id="export-modal" class="modal hidden">
+        <div class="modal-overlay" onclick="closeExportModal()"></div>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Exportar Relatório</h2>
+                <button class="btn-close" onclick="closeExportModal()">×</button>
+            </div>
+            <div class="modal-body">
+                <p>Escolha o formato do arquivo para exportação:</p>
+                <div class="format-options">
+                    <label class="format-option">
+                        <input type="radio" name="export-format" value="csv" checked>
+                        <span class="format-icon">📊</span>
+                        <div class="format-info">
+                            <span class="format-title">CSV</span>
+                            <span class="format-desc">Planilha estruturada (Excel) com múltiplas seções.</span>
+                        </div>
+                    </label>
+                    <label class="format-option">
+                        <input type="radio" name="export-format" value="json">
+                        <span class="format-icon">📄</span>
+                        <div class="format-info">
+                            <span class="format-title">JSON</span>
+                            <span class="format-desc">Estrutura de dados completa para processamento.</span>
+                        </div>
+                    </label>
+                    <label class="format-option">
+                        <input type="radio" name="export-format" value="html">
+                        <span class="format-icon">🌐</span>
+                        <div class="format-info">
+                            <span class="format-title">HTML</span>
+                            <span class="format-desc">Relatório visual formatado para impressão.</span>
+                        </div>
+                    </label>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="closeExportModal()">Cancelar</button>
+                <button class="btn-primary" onclick="confirmExport()">
+                    <span class="btn-text">Exportar</span>
+                    <span class="spinner hidden"></span>
+                </button>
+            </div>
+        </div>
+    </div>
 </body>
 
 </html>
